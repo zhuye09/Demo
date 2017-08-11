@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+	<Resource auth="Container" driverClassName="org.gjt.mm.mysql.Driver" maxActive="100" maxIdle="30" maxWait="100" name="hotel" password="root" type="javax.sql.DataSource" url="jdbc:mysql://localhost/hotel" username="root"/>
+</Context>

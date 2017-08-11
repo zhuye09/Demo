@@ -1,0 +1,260 @@
+package cn.sendto.hotel.dao;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import cn.sendto.hotel.mappers.CountIncomeMapper;
+import cn.sendto.hotel.mappers.CustMapper;
+import cn.sendto.hotel.mappers.OrderListMapper;
+import cn.sendto.hotel.mappers.OrderListMapper2;
+import cn.sendto.hotel.mappers.OrderListMapper3;
+import cn.sendto.hotel.mappers.OrderUserMapper;
+import cn.sendto.hotel.models.CountIncomeVO;
+import cn.sendto.hotel.models.CustModel;
+import cn.sendto.hotel.models.OrderListModel;
+import cn.sendto.hotel.view.OrderUserModel;
+
+public class OrderListDao extends BaseDao {
+	//定义日志对象
+	private DBHelper helper=new DBHelper();
+	/**
+	 * 查询所有
+	 * @throws Exception 
+	 * */
+	public List<OrderListModel> findAll() throws Exception {
+		List<OrderListModel> list=new ArrayList<OrderListModel>();
+		try{
+		String sql="select * from orderList";
+		list=helper.executeQuery(sql, new OrderListMapper());
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			helper.close();
+		}
+		return list;
+	}
+	
+	public OrderListModel findOrederById(int id) throws SQLException{
+		List<OrderListModel> list = null;
+		try {
+			String sql = "select * from orderlist where id=?";
+			list = helper.executeQuery(sql,new OrderListMapper(), id);
+			if(list != null && list.size() > 0){
+				return list.get(0);
+			}else{
+				return null;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			helper.close();
+		}
+		return null;
+	}
+	/***
+	 * 按照条件查询顾客入住信息
+	 */
+	
+	public List<OrderListModel> findListById(int id) throws SQLException{
+		List<OrderListModel> list = null;
+		try {
+			String sql = "SELECT * FROM customer_orderlist AS co LEFT JOIN customer AS c ON co.customer_id=c.id LEFT JOIN orderlist AS o ON co.orderlist_id=o.id LEFT JOIN rooms AS r ON r.id=c.roomid LEFT JOIN roomtype AS rt ON r.typeId=rt.id WHERE o.id=?";
+			list = helper.executeQuery(sql,new OrderListMapper(), id);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			helper.close();
+		}
+		return list;
+	}
+	/**
+	 * VO查询所有
+	 * @throws Exception 
+	 * */
+	public OrderUserModel findAllOrderUser(int id) throws Exception {
+		List<OrderUserModel> list = null;
+		try{
+			String sql = "select * from orderList as ord left join user as us on ord.userId = us.id left join customer as cus on ord.cusName=cus.trueName";
+			list=helper.executeQuery(sql, new OrderUserMapper());
+			if(list != null && list.size() > 0){
+				return list.get(0);
+			}else{
+				return null;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			helper.close();
+		}
+		return null;
+	}
+	/**
+	 * 添加订单
+	 * @throws Exception 
+	 * */
+	public OrderListModel addOrder(OrderListModel model) throws Exception {
+		int i=0;
+		List<OrderListModel> list = null;
+		String sql="insert into orderList(userId, cusName,liveDate, expectCheckoutDate, discount, expectCost, staste, days)values(?,?,?,?,?,?,?,?)";
+		String s1 = "select * from orderlist where cusName='"+model.getCusName()+"'";
+		Object[]values=new Object[]{model.getUserId(),model.getCusName(),model.getLiveDate(), model.getExpectCheckoutDate(),model.getDiscount(),model.getExpectCost(), model.getStaste(),model.getDays()};
+		i = helper.executeUpdate(sql, values);
+		if (i ==1) {
+			list = helper.executeQuery(s1,new OrderListMapper2() ,null);
+		}
+		return list.get(0);
+	}
+	/**
+	 * 根据房间号查询
+	 * @throws Exception 
+	 * */
+	public OrderListModel findRoomId(String roomId) throws Exception{
+		List<OrderListModel> list = null;
+		String sql = "select * from orderList where roomId=?";
+		list = helper.executeQuery(sql,new OrderListMapper(), roomId);
+		if(list != null && list.size() > 0){
+			return list.get(0);
+		}else{
+			return null;
+		}
+	}
+	/**
+	 * 修改
+	 * @throws Exception 
+	 * */
+	public int update(OrderListModel model) throws Exception {
+		int i=0;
+		String sql="update orderList set userId=?, cusName=?,liveDate=?,reallyCheckoutDate=?, expectCheckoutDate=?, discount=?, expectCost=?, reallyCost=?, staste=?, days=?,regDays=? where id=?";
+		Object[]values=new Object[]{model.getUserId(),model.getCusName(),model.getLiveDate(),model.getReallyCheckoutDate(),model.getExpectCheckoutDate(),model.getDiscount(),model.getExpectCost(),model.getReallyCost(),model.getStaste(),model.getDays(),model.getRegDays(),model.getId()};
+		return helper.executeUpdate(sql, values);
+	}
+	/**
+	 * 删除
+	 * */
+	public int delete(int id) throws Exception {
+		int i=0;
+		try{
+			String sql="delete from orderList where id=?";
+			i=helper.executeUpdate(sql, id);
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			helper.close();
+		}
+		return i;
+	}
+	/**
+	 * 条件查询收益
+	 * 
+	 * */
+	public List<CountIncomeVO> countIncome(CountIncomeVO countIncomeVO)throws Exception{
+		List<CountIncomeVO> list= new ArrayList<CountIncomeVO>();
+		String sql="SELECT SUM(reallyCost) FROM orderlist WHERE liveDate >= ? AND liveDate <= ?";
+		list=helper.executeQuery(sql, new CountIncomeMapper());
+		Object[]values=new Object[]{countIncomeVO.getStartDate(),countIncomeVO.getEndDate()};
+		List<CountIncomeVO> vo=new ArrayList<CountIncomeVO>();
+		((CountIncomeVO) vo).setCountcost(list.get(0).getCountcost());
+		return vo;
+	}
+
+	/**
+	 * 查询所有订单的总记录条数
+	 * @return
+	 * @throws Exception 
+	 */
+	public int findAllOrderListCount() throws Exception {
+		
+		String sql = "select count(*) from orderlist";
+		return (Integer) helper.executeScalar(sql);
+
+	}
+
+	/**
+	 * 根据条件查询 符合条件的所有记录条数
+	 * @param where
+	 * @return
+	 * @throws Exception 
+	 */
+	public int findAllOrderListCount(String where) throws Exception {
+		
+		String sql = "select count(*) from orderlist where " + where;
+		return (Integer) helper.executeScalar(sql);
+		 
+	}
+
+	/**
+	 * 带条件的分页查询所有的订单信息
+	 * @param pageIndex
+	 * @param pageSize
+	 * @param where
+	 * @return List<OrderListModel>
+	 * @throws Exception 
+	 */
+	public List<OrderListModel> findAllOrderList(int pageIndex, int pageSize, String where) throws Exception {
+		String sql = "SELECT * FROM customer_orderlist AS ol LEFT JOIN customer AS c ON c.id=ol.customer_id LEFT JOIN orderlist AS o ON ol.orderlist_id=o.id LEFT JOIN rooms AS r ON c.roomid=r.id LEFT JOIN roomtype AS rt ON r.typeId=rt.id  where " + where + " limit ?, ?";
+		Object [] obj = {(pageIndex - 1) * pageSize, pageSize};
+		@SuppressWarnings("unchecked")
+		List<OrderListModel> list =  (List<OrderListModel>) helper.executeQuery(sql, new OrderListMapper3(), obj);
+		return list;
+		
+	}/**
+	 * 带条件的分页查询所有的订单信息
+	 * @param pageIndex
+	 * @param pageSize
+	 * @param where
+	 * @return List<OrderListModel>
+	 * @throws Exception 
+	 */
+	public List<OrderListModel> findAllOrderList1(int pageIndex, int pageSize, String where) throws Exception {
+		String sql = "SELECT * FROM customer_orderlist AS ol LEFT JOIN customer AS c ON c.id=ol.customer_id LEFT JOIN orderlist AS o ON ol.orderlist_id=o.id LEFT JOIN rooms AS r ON c.roomid=r.id LEFT JOIN roomtype AS rt ON r.typeId=rt.id  where " + where + " limit ?, ?";
+		Object [] obj = {(pageIndex - 1) * pageSize, pageSize};
+		@SuppressWarnings("unchecked")
+		List<OrderListModel> list =  (List<OrderListModel>) helper.executeQuery(sql, new OrderListMapper(), obj);
+		return list;
+		
+	}
+	
+	/**
+	 * 查询收益量
+	 */
+	public List<OrderListModel> findCost(String startDate,String endDate){
+		List<OrderListModel> list = null;
+		try {
+			String sql = "select * from orderlist where";
+			String sub = "";
+			if(startDate != null && endDate != null){
+				sub = " liveDate between "+"'"+startDate+"'"+" and "+"'"+endDate+"'";
+				sql = sql+sub;
+			}
+			if(startDate != null && endDate == null){
+				sub = " liveDate = '"+startDate+"'";
+				sql = sql+sub;
+			}
+			list = helper.executeQuery(sql,new OrderListMapper3());
+			if(list != null && list.size() > 0){
+				return list;
+			}else{
+				return null;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public int findOrederIdByName(String cusName) throws Exception {
+		List<OrderListModel> list = null;
+		String sql = "select count(*) from orderlist where cusName="+cusName;
+		list = helper.executeQuery(sql,new OrderListMapper3(), null);
+		if(list != null && list.size() > 0){
+			return list.get(0).getId();
+		}else{
+			return 0;
+		}
+	}
+}
